@@ -1,0 +1,181 @@
+{extends 'layout/app'}
+
+{block 'content'}
+<div class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card card-plain">
+                    <div class="card-header card-header-icon" data-background-color="gray">
+                        <i class="material-icons">school</i>
+                    </div>
+                    <h4 class="card-title">Plano de Estudo</h4>
+                    <p class="category">Este é o seu plano de estudo do período corrente.</p>
+                    <br>
+                    <div class="card-content" class="ps-child">
+                        <div id="fullCalendar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{/block}
+
+{block 'script'}
+<script type="text/javascript">
+    $(document).ready(function() {
+        initFullCalendar();
+    });
+
+    initFullCalendar = function() {
+        $calendar = $('#fullCalendar');
+
+        today = new Date(2018,2,12);
+        y = today.getFullYear();
+        m = today.getMonth();
+        d = today.getDate();
+
+        var color = ['green', 'azure', 'orange', 'red']
+
+        $calendar.fullCalendar({
+            viewRender: function(view, element) {
+                // We make sure that we activate the perfect scrollbar when the view isn't on Month
+                if (view.name != 'month') {
+                    $(element).find('.fc-scroller').perfectScrollbar();
+                }
+
+            },
+
+            header: {
+                left: 'title',
+                center: '',
+                right: 'prev,next today'
+            },
+
+            defaultView: 'agendaDay',
+            defaultDate: new Date(),
+            selectable: false,
+            selectHelper: false,
+
+            views: {
+                month: { // name of view
+                    titleFormat: 'MMMM YYYY'
+                    // other view-specific options here
+                },
+                week: {
+                    titleFormat: " MMMM D YYYY"
+                },
+                day: {
+                    titleFormat: 'D MMM, YYYY'
+                }
+            },
+
+            select: function(start, end) {
+
+                // on select we show the Sweet Alert modal with an input
+                swal({
+                    title: 'Criar um evento',
+                    html: '<div class="form-group">' +
+                        '<input class="form-control" placeholder="Titulo do evento" id="title">' +
+                        '</div>',
+                    showCancelButton: true,
+                    confirmButtonClass: 'btn btn-success',
+                    cancelButtonClass: 'btn btn-danger',
+                    buttonsStyling: false
+                }).then(function(result) {
+
+                    var eventData;
+                    event_title = $('#title').val();
+
+                    if (event_title) {
+                        eventData = {
+                            title: event_title,
+                            start: start,
+                            end: end
+                        };
+                        $calendar.fullCalendar('renderEvent', eventData, true); // stick? = true
+                    }
+
+                    $calendar.fullCalendar('unselect');
+
+                });
+            },
+            editable: false,
+            eventLimit: true, // allow "more" link when too many events
+
+            // color classes: [ event-blue | event-azure | event-green | event-orange | event-red ]
+            events: [
+                {foreach loop as sum}
+                    {foreach disciplinas as disciplina}
+                        {
+                            title: '{disciplina.nome}',
+                            {if disciplina.seg != ''}
+                                start: new Date(y, m, d + 7*{sum}, {disciplina.seg}, 0),
+                                end: new Date(y, m, d + 7*{sum}, {disciplina.seg} + {disciplina.duracao}, 0),
+                            {/if}
+                            allDay: false,
+                            className: 'event-' + Math.floor(Math.random() * 4)
+                        },
+                    {/foreach}
+                    {foreach disciplinas as disciplina}
+                        {
+                            title: '{disciplina.nome}',
+                            {if disciplina.ter != ''}
+                                start: new Date(y, m, d + 1 + 7*{sum}, {disciplina.ter}, 0),
+                                end: new Date(y, m, d + 1 + 7*{sum}, {disciplina.ter} + {disciplina.duracao}, 0),
+                            {/if}
+                            allDay: false,
+                            className: 'event-' + color[Math.floor(Math.random() * 4)]
+                        },
+                    {/foreach}
+                    {foreach disciplinas as disciplina}
+                        {
+                            title: '{disciplina.nome}',
+                            {if disciplina.qua != ''}
+                                start: new Date(y, m, d + 2 + 7*{sum}, {disciplina.qua}, 0),
+                                end: new Date(y, m, d + 2 + 7*{sum}, {disciplina.qua} + {disciplina.duracao}, 0),
+                            {/if}
+                            allDay: false,
+                            className: 'event-' + color[Math.floor(Math.random() * 4)]
+                        },
+                    {/foreach}
+                    {foreach disciplinas as disciplina}
+                        {
+                            title: '{disciplina.nome}',
+                            {if disciplina.qui != ''}
+                                start: new Date(y, m, d + 3 + 7*{sum}, {disciplina.qui}, 0),
+                                end: new Date(y, m, d + 3 + 7*{sum}, {disciplina.qui} + {disciplina.duracao}, 0),
+                            {/if}
+                            allDay: false,
+                            className: 'event-' + color[Math.floor(Math.random() * 4)]
+                        },
+                    {/foreach}
+                    {foreach disciplinas as disciplina}
+                        {
+                            title: '{disciplina.nome}',
+                            {if disciplina.sex != ''}
+                                start: new Date(y, m, d + 4 + 7*{sum}, {disciplina.sex}, 0),
+                                end: new Date(y, m, d + 4 + 7*{sum}, {disciplina.sex} + {disciplina.duracao}, 0),
+                            {/if}
+                            allDay: false,
+                            className: 'event-' + color[Math.floor(Math.random() * 4)]
+                        },
+                    {/foreach}
+                    {foreach disciplinas as disciplina}
+                        {
+                            title: '{disciplina.nome}',
+                            {if disciplina.sab != ''}
+                                start: new Date(y, m, d + 5 + 7*{sum}, {disciplina.sab}, 0),
+                                end: new Date(y, m, d + 5 + 7*{sum}, {disciplina.sab} + {disciplina.duracao}, 0),
+                            {/if}
+                            allDay: false,
+                            className: 'event-' + color[Math.floor(Math.random() * 4)]
+                        },
+                    {/foreach}
+                {/foreach}
+            ]
+        });
+    }
+</script>
+{/block}

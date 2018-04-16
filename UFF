@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
+
+import sys
+import json
+import string
+import requests
+
+from lxml import html
+
+class UFFScraper():
+    session_requests = None
+    content = None
+    token = None
+
+    iduff     = sys.argv[1]
+    password  = sys.argv[2]
+    login_url = "https://inscricao.id.uff.br/login.uff"
+    url_home = "https://inscricao.id.uff.br/iduff/sid137avUfd98/privado/home.uff"
+    url_plano_de_estudo = "https://inscricao.id.uff.br/iduff/sid137avUfd98/privado/academico/aluno/visualizarPlanoDeEstudoCorrente.uff"
+    url_historico = "https://inscricao.id.uff.br/iduff/sid137avUfd98/privado/declaracoes/private/historico.uff"
+
+    def __init__(self):
+        self.session_requests = requests.session()
+        self.token = self.getToken()
+        self.login()
+
+    def getToken(self):
+        result = self.session_requests.get(self.login_url)
+        tree = html.fromstring(result.text)
+        authenticity_token = list(set(tree.xpath("//input[@name='javax.faces.ViewState']/@value")))[0]
+        return authenticity_token
+
+    def payload(self):
+        return {
+            'login': 'login',
+            'login:id': self.iduff,
+            'login:senha': self.password,
+            'login:btnLogar': 'Logar',
+            'javax.faces.ViewState': self.token
+        }
+
+    def login(self):
+        self.session_requests.post(self.login_url, data = self.payload(), headers = dict(referer = self.login_url))
+        self.contents(self.url_home)
+        login = self.match("//form[@id='login']")
+        if len(login) != 0:
+            status = {
+                "status": -1
+            }
+            print(json.dumps(status))
+            exit()
+
+    def match(self, pattern):
+        tree = html.fromstring(self.content)
+        return tree.xpath(pattern)
+
+    def contents(self, url):
+        self.content = self.session_requests.get(url, headers = dict(referer = url)).content
+
+    def historico(self):
+        self.contents(self.url_historico)
+
+        historico = []
+
+        id_pattern = "//td[@id='historico:tblDisciplinasHistorico:"
+        id_prefix  = ":j_id"
+
+        num_disciplinas = len(self.match("//table/tbody/tr"))
+
+        for i in range(num_disciplinas):
+            pattern = id_pattern + str(i) + id_prefix
+
+            if len(self.match(pattern + "80']/text()")) == 0:
+                cod = ''
+            else:
+                cod = self.match(pattern + "80']/text()")[0]
+
+            if len(self.match(pattern + "83']/text()")) == 0:
+                nome = ''
+            else:
+                nome = string.capwords(self.match(pattern + "83']/text()")[0])
+
+            if len(self.match(pattern + "87']/div/text()")) == 0:
+                status = ''
+            else:
+                status = self.match(pattern + "87']/div/text()")[0][:-17]
+
+            if len(self.match(pattern + "92']/text()")) == 0:
+                turma = ''
+            else:
+                turma = self.match(pattern + "92']/text()")[0]
+
+            if len(self.match(pattern + "95']/text()")) == 0:
+                nota = ''
+            else:
+                nota = float(self.match(pattern + "95']/text()")[0])
+
+            if len(self.match(pattern + "98']/text()")) == 0:
+                vs = ''
+            else:
+                vs = float(self.match(pattern + "98']/text()")[0])
+
+            if len(self.match(pattern + "101']/text()")) == 0:
+                frequencia = ''
+            else:
+                frequencia = self.match(pattern + "101']/text()")[0]
+
+            if len(self.match(pattern + "104']/text()")) == 0:
+                horas = ''
+            else:
+                horas = int(self.match(pattern + "104']/text()")[0])
+
+            if len(self.match(pattern + "107']/text()")) == 0:
+                creditos = ''
+            else:
+                creditos = self.match(pattern + "107']/text()")[0]
+
+            if len(self.match(pattern + "110']/text()")) == 0:
+                semestre = ''
+            else:
+                semestre = self.match(pattern + "110']/text()")[0]
+
+            historico.append({
+                "codigo": cod,
+                "disciplina": nome,
+                "status": status,
+                "turma": turma,
+                "nota": nota,
+                "vs": vs,
+                "frequencia": frequencia,
+                "horas": horas,
+                "creditos": creditos,
+                "semestre": semestre
+            })
+
+        return {
+            "cr": float(self.match("//td[not(@id)]/text()")[6][37:-33]),
+            "historico": historico
+        }
+
+    def plano_de_estudo(self):
+        self.contents(self.url_plano_de_estudo)
+
+        num_disciplinas = len(self.match("//table/tbody/tr"))
+
+        plano = []
+        duracao = 0
+
+        id_pattern = "//td[@id='visualizarPlanoDeEstudoCorrente:tabelaPlanoDeEstudos:"
+        id_prefix  = ":j_id"
+
+        for i in range(num_disciplinas):
+            pattern = id_pattern + str(i) + id_prefix
+
+            if len(self.match(pattern + "48']/text()")) == 0:
+                cod = ''
+            else:
+                cod = self.match(pattern + "48']/text()")[0]
+
+            if len(self.match(pattern + "51']/text()")) == 0:
+                disc = ''
+            else:
+                disc = string.capwords(self.match(pattern + "51']/text()")[0])
+
+            if len(self.match(pattern + "61']/span/text()")) == 0:
+                turma = ''
+            else:
+                turma = self.match(pattern + "61']/span/text()")[0]
+
+            if len(self.match(pattern + "64']/text()")) == 0:
+                seg = ''
+            else:
+                tmp = self.match(pattern + "64']/text()")[0]
+                seg = int(tmp[:tmp.index(':')])
+                seg = str(seg)
+                duracao = int(tmp[tmp.index('/')+1:-3]) - int(seg)
+                duracao = str(duracao)
+
+
+            if len(self.match(pattern + "67']/text()")) == 0:
+                ter = ''
+            else:
+                tmp = self.match(pattern + "67']/text()")[0]
+                ter = int(tmp[:tmp.index(':')])
+                ter = str(ter)
+                duracao = int(tmp[tmp.index('/')+1:-3]) - int(ter)
+                duracao = str(duracao)
+
+
+            if len(self.match(pattern + "70']/text()")) == 0:
+                qua = ''
+            else:
+                tmp = self.match(pattern + "70']/text()")[0]
+                qua = int(tmp[:tmp.index(':')])
+                qua = str(qua)
+                duracao = int(tmp[tmp.index('/')+1:-3]) - int(qua)
+                duracao = str(duracao)
+
+
+            if len(self.match(pattern + "73']/text()")) == 0:
+                qui = ''
+            else:
+                tmp = self.match(pattern + "73']/text()")[0]
+                qui = int(tmp[:tmp.index(':')])
+                qui = str(qui)
+                duracao = int(tmp[tmp.index('/')+1:-3]) - int(qui)
+                duracao = str(duracao)
+
+
+            if len(self.match(pattern + "76']/text()")) == 0:
+                sex = ''
+            else:
+                tmp = self.match(pattern + "76']/text()")[0]
+                sex = int(tmp[:tmp.index(':')])
+                sex = str(sex)
+                duracao = int(tmp[tmp.index('/')+1:-3]) - int(sex)
+                duracao = str(duracao)
+
+
+            if len(self.match(pattern + "79']/text()")) == 0:
+                sab = ''
+            else:
+                tmp = self.match(pattern + "79']/text()")[0]
+                sab = int(tmp[:tmp.index(':')])
+                sab = str(sab)
+                duracao = int(tmp[tmp.index('/')+1:-3]) - int(sab)
+                duracao = str(duracao)
+
+
+            if len(self.match(pattern + "82']/text()")) == 0:
+                ano = ''
+            else:
+                ano = self.match(pattern + "82']/text()")[0]
+
+            plano.append({
+                "cod":   cod,
+                "nome":  disc,
+                "turma": turma,
+                "duracao": duracao,
+                "seg":   seg,
+                "ter":   ter,
+                "qua":   qua,
+                "qui":   qui,
+                "sex":   sex,
+                "sab":   sab
+            })
+
+        return plano
+
+    def parse(self):
+        html = self.match("//td/text()")
+        nome_completo = string.capwords(html[0])
+        nome = nome_completo.split()[0]
+        sobrenome = nome_completo.split()[1]
+        return {
+            "status": 0,
+            "token": self.token,
+            "nome": nome + " " + sobrenome ,
+            "cpf": html[1][9:-1],
+            "matricula": html[2][8:],
+            'foto': self.match("//img[@alt='Sua foto']/@src")[0][:-3]+"jpg",
+            "plano_de_estudo": self.plano_de_estudo(),
+            "historico": self.historico()
+        }
+
+def main():
+    if (len(sys.argv) != 3):
+        return -1
+
+    resul = UFFScraper().parse()
+    resul = json.dumps(resul)
+    print(resul)
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,61 @@
+{extends 'layout/app'}
+
+{block 'content'}
+<div class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card card-plain">
+                    <div class="card-header card-header-icon" data-background-color="gray">
+                        <i class="material-icons">history</i>
+                    </div>
+                    <h4 class="card-title">Histórico</h4>
+                    <p class="category">Coeficiente de Rendimento: {uff.historico.cr}</p>
+                    <div class="card-content">
+                        <p>
+                            O Histórico Oficial da UFF não mostra as disciplinas em que o aluno reprovou ou cancelou,
+                            mostra apenas as aprovadas, as que o aluno pediu dispensa e as atividades complementares.
+                        </p>
+                        <table class="table table-hover table-responsive">
+                            <thead>
+                                <th>Disciplina</th>
+                                <th style="text-align: center;">Situação</th>
+                                <th style="text-align: center;">Turma</th>
+                                <th style="text-align: center;">Nota</th>
+                                <th style="text-align: center;">VS</th>
+                                <th style="text-align: center;">Freqüência</th>
+                                <th style="text-align: center;">Horas</th>
+                                <th style="text-align: center;">Semestre</th>
+                            </thead>
+                            <tbody>
+                                {foreach uff.historico.historico as historico}
+                                <tr>
+                                    <td>
+                                        {historico.disciplina}
+                                    </td>
+                                    <td style="text-align: center;" class="
+                                    {if historico.status == 'Aprovado'}
+                                        success
+                                    {elseif historico.status == 'Reprovado'}
+                                        danger
+                                    {elseif historico.status == 'Trancado'}
+                                        warning
+                                    {/if}
+                                    ">{if historico.status === ''}-{else}{historico.status}{/if}</td>
+                                    <td style="text-align: center;">{if historico.turma === ''}-{else}{historico.turma}{/if}</td>
+                                    <td style="text-align: center;">{if historico.nota === ''}-{else}{historico.nota}{/if}</td>
+                                    <td style="text-align: center;">{if historico.vs === ''}-{else}{historico.vs}{/if}</td>
+                                    <td style="text-align: center;">{if historico.frequencia === ''}-{else}{historico.frequencia}{/if}</td>
+                                    <td style="text-align: center;">{if historico.horas === ''}-{else}{historico.horas}{/if}</td>
+                                    <td style="text-align: center;">{if historico.semestre === ''}-{else}{historico.semestre}{/if}</td>
+                                {/foreach}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{/block}
